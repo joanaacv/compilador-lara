@@ -100,10 +100,13 @@ static int max(int a, int b) { return (a > b) ? a : b; }
 
 int ast_max_depth(const ast_node_t *node)
 {
-    /* TODO-G: implementar */
-    (void)node;
-    (void)max;   /* evita warning — remova ao implementar */
-    return 0;
+    /* TODO-G: */
+    if (node == NULL) return -1;
+    int depth = 0;
+    for (int i = 0; i < AST_MAX_CHILDREN; i++)
+        depth = max(depth, 1 + ast_max_depth(node->children[i]));
+    depth = max(depth, ast_max_depth(node->next));
+    return depth;
 }
 
 /* -----------------------------------------------------------------------
