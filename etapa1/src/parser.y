@@ -497,10 +497,12 @@ expr_list
  *
  * Siga o mesmo padrão de param_list_ne acima.
  */
+    /* TODO-D: adicione aqui a regra para lista com múltiplos argumentos */
 expr_list_ne
     : expr
         { $$ = $1; }
-    /* TODO-D: adicione aqui a regra para lista com múltiplos argumentos */
+    | expr_list_ne ',' expr
+        { $$ = ast_append($1, $3); }
     ;
 
 /* ------- lvalue (lado esquerdo de atribuição) ------- */
