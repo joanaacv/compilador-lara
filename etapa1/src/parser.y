@@ -415,11 +415,17 @@ expr
             /* Dica: $$ = ast_new(AST_EXPR_BINARY, "&&", yylineno);
              *        $$->children[0] = $1;
              *        $$->children[1] = $3;          */
+            $$ = ast_new(AST_EXPR_BINARY, "&&", yylineno);
+            $$->children[0] = $1;
+            $$->children[1] = $3;
         }
     | expr TK_OC_OR expr
         {
             /* TODO-C-2: substitua NULL pelo nó correto */
             $$ = NULL;  /* <-- INCOMPLETO: crie o nó AST_EXPR_BINARY aqui */
+            $$ = ast_new(AST_EXPR_BINARY, "||", yylineno);
+            $$->children[0] = $1;
+            $$->children[1] = $3;
         }
 
     /* Operador unário de negação lógica */
