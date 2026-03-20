@@ -72,9 +72,17 @@ int ast_count_nodes(const ast_node_t *node)
  * ----------------------------------------------------------------------- */
 int ast_count_leaves(const ast_node_t *node)
 {
-    /* TODO-F: implementar */
-    (void)node;  /* evita warning de parâmetro não usado — remova ao implementar */
-    return 0;
+    /* TODO-F: */
+    if (node == NULL) return 0;
+    int is_leaf = 1;
+    for (int i = 0; i < AST_MAX_CHILDREN; i++)
+        if (node->children[i] != NULL) { is_leaf = 0; break; }
+    if (node->next != NULL) is_leaf = 0;
+    int count = is_leaf ? 1 : 0;
+    for (int i = 0; i < AST_MAX_CHILDREN; i++)
+        count += ast_count_leaves(node->children[i]);
+    count += ast_count_leaves(node->next);
+    return count;
 }
 
 /* -----------------------------------------------------------------------
