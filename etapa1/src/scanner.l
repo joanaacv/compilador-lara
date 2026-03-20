@@ -51,7 +51,7 @@ FLOAT       {DIGIT}*"."{DIGIT}+|{DIGIT}+"."{DIGIT}*
 
 %%
 
-[ \n]+      { /* TODO-A: adicione \t e \r — espaço em branco incompleto */ }
+[ \n\t\r]+  { /* TODO-A: adicione \t e \r — espaço em branco incompleto */ }
 
 "//".*      { }
 
