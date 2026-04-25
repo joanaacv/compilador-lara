@@ -128,12 +128,35 @@ void codegen_program(codegen_ctx_t *ctx, ast_node_t *program)
      *       O tipo base está em decl->children[0]->value.
      */
 
-    /* Código parcial fornecido como exemplo — processa apenas funções */
+    int global_offset = 0;
     while (decl) {
         if (decl->type == AST_FUN_DECL) {
             codegen_fun(ctx, decl);
+        } else if (decl->type == AST_VAR_DECL) {
+            const char *vname = decl->value;
+            sym_entry_t *e = symtab_lookup(ctx->symtab, vname);
+            if (e) {
+                e->scope  = SYM_SCOPE_GLOBAL;
+                e->offset = global_offset;
+                int sz = type_size(e->datatype);
+                global_offset += sz;
+                char size_str[16];
+                snprintf(size_str, sizeof(size_str), "%d", sz);
+                codegen_emit(ctx, TAC_DECL_GLOBAL, vname, size_str, NULL);
+            }
+        } else if (decl->type == AST_ARRAY_DECL) {
+            const char *aname = decl->value;
+            sym_entry_t *e = symtab_lookup(ctx->symtab, aname);
+            if (e) {
+                e->scope  = SYM_SCOPE_GLOBAL;
+                e->offset = global_offset;
+                int sz = type_size(e->datatype) * e->array_size;
+                global_offset += sz;
+                char size_str[16];
+                snprintf(size_str, sizeof(size_str), "%d", sz);
+                codegen_emit(ctx, TAC_DECL_GLOBAL, aname, size_str, NULL);
+            }
         }
-        /* TODO-E2-A: adicione tratamento para AST_VAR_DECL e AST_ARRAY_DECL */
         decl = decl->next;
     }
 }
