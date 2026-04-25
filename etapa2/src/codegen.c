@@ -403,10 +403,7 @@ char *codegen_expr(codegen_ctx_t *ctx, ast_node_t *expr)
              * (placeholder). Substitua pela emissão correta.
              */
             if (op != TAC_NOP) {
-                /* TODO-E2-B e TODO-E2-C: substitua a linha abaixo */
-                codegen_emit(ctx, TAC_NOP, tmp, left, right);
-                /* pela linha correta: */
-                /* codegen_emit(ctx, op, tmp, left, right); */
+                codegen_emit(ctx, op, tmp, left, right);
             } else {
                 fprintf(stderr, "[CODEGEN] Operador desconhecido: '%s'\n", expr->value);
                 codegen_emit(ctx, TAC_NOP, tmp, left, right);
