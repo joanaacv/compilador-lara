@@ -259,8 +259,16 @@ void codegen_stmt(codegen_ctx_t *ctx, ast_node_t *stmt)
          */
         case AST_ASSIGN: {
             if (strcmp(stmt->value, ":=") == 0) {
-                /* TODO-E2-D: implemente aqui */
-                fprintf(stderr, "[CODEGEN] TODO-E2-D: atribuição não implementada ainda.\n");
+                char *rval = codegen_expr(ctx, stmt->children[1]);
+                ast_node_t *lv = stmt->children[0];
+                if (lv->type == AST_EXPR_INDEX) {
+                    char *idx = codegen_expr(ctx, lv->children[0]);
+                    codegen_emit(ctx, TAC_STORE, lv->value, idx, rval);
+                    free(idx);
+                } else {
+                    codegen_emit(ctx, TAC_COPY, lv->value, rval, NULL);
+                }
+                free(rval);
             } else if (strcmp(stmt->value, "+=") == 0) {
                 /* compound assignment += */
                 char *lname = stmt->children[0]->value;
