@@ -57,7 +57,7 @@ int ast_count_nodes(const ast_node_t *node)
         count += ast_count_nodes(node->children[i]);
 
     /* TODO-E: adicione aqui a contagem recursiva via 'next' */
-    /* count += ast_count_nodes(node->next); */  /* <-- descomente e ajuste */
+    count += ast_count_nodes(node->next);
 
     return count;
 }
@@ -72,9 +72,17 @@ int ast_count_nodes(const ast_node_t *node)
  * ----------------------------------------------------------------------- */
 int ast_count_leaves(const ast_node_t *node)
 {
-    /* TODO-F: implementar */
-    (void)node;  /* evita warning de parâmetro não usado — remova ao implementar */
-    return 0;
+    /* TODO-F: */
+    if (node == NULL) return 0;
+    int is_leaf = 1;
+    for (int i = 0; i < AST_MAX_CHILDREN; i++)
+        if (node->children[i] != NULL) { is_leaf = 0; break; }
+    if (node->next != NULL) is_leaf = 0;
+    int count = is_leaf ? 1 : 0;
+    for (int i = 0; i < AST_MAX_CHILDREN; i++)
+        count += ast_count_leaves(node->children[i]);
+    count += ast_count_leaves(node->next);
+    return count;
 }
 
 /* -----------------------------------------------------------------------
@@ -92,10 +100,13 @@ static int max(int a, int b) { return (a > b) ? a : b; }
 
 int ast_max_depth(const ast_node_t *node)
 {
-    /* TODO-G: implementar */
-    (void)node;
-    (void)max;   /* evita warning — remova ao implementar */
-    return 0;
+    /* TODO-G: */
+    if (node == NULL) return -1;
+    int depth = 0;
+    for (int i = 0; i < AST_MAX_CHILDREN; i++)
+        depth = max(depth, 1 + ast_max_depth(node->children[i]));
+    depth = max(depth, ast_max_depth(node->next));
+    return depth;
 }
 
 /* -----------------------------------------------------------------------
