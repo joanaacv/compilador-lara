@@ -146,14 +146,27 @@ void codegen_fun(codegen_ctx_t *ctx, ast_node_t *fun_decl)
     codegen_emit(ctx, TAC_BEGINFUNC, fname, NULL, NULL);
 
     ast_node_t *param = fun_decl->children[1];
-    int param_offset = -4;
     while (param) {
         if (param->type == AST_PARAM && param->value) {
             sym_entry_t *e = symtab_lookup(ctx->symtab, param->value);
             if (e) {
+                /* Trata o parâmetro como uma variável local: reserva um slot no
+                   frame e emite TAC_DECL_LOCAL para que asmgen (a) registre o
+                   offset no mapa de variáveis e (b) gere o spill do registrador
+                   ABI (%rdi, %rsi, ...) para esse slot no prólogo.
+
+                   asmgen identifica parâmetros pelo offset negativo no symtab
+                   (ver asmgen_function: "e->offset < 0" dispara o spill) e usa
+                   esse mesmo offset como destino do spill. Para que reads
+                   posteriores leiam do mesmo slot, o offset precisa coincidir
+                   com o cálculo de asmgen: -(arg1 + 8). */
                 e->scope  = SYM_SCOPE_LOCAL;
-                e->offset = param_offset;
-                param_offset -= type_size(e->datatype);
+                e->offset = -(ctx->local_offset + 8);
+                int sz = type_size(e->datatype);
+                char off_str[16];
+                snprintf(off_str, sizeof(off_str), "%d", ctx->local_offset);
+                codegen_emit(ctx, TAC_DECL_LOCAL, param->value, off_str, NULL);
+                ctx->local_offset += sz;
             }
         }
         param = param->next;
