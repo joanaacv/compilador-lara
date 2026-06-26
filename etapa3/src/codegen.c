@@ -35,12 +35,15 @@
  * ----------------------------------------------------------------------- */
 static int type_size(sym_datatype_t dt)
 {
+    /* x86-64: o asmgen usa qwords (8 bytes) para tudo no frame. Mantemos
+       todos os tipos com 8 bytes para que os offsets de codegen e asmgen
+       concordem e variáveis adjacentes não se sobreponham. */
     switch (dt) {
-        case SYM_TYPE_INT:   return 4;
+        case SYM_TYPE_INT:   return 8;
         case SYM_TYPE_FLOAT: return 8;
-        case SYM_TYPE_CHAR:  return 1;
-        case SYM_TYPE_BOOL:  return 1;
-        default:             return 4;
+        case SYM_TYPE_CHAR:  return 8;
+        case SYM_TYPE_BOOL:  return 8;
+        default:             return 8;
     }
 }
 
@@ -161,6 +164,10 @@ void codegen_fun(codegen_ctx_t *ctx, ast_node_t *fun_decl)
         ast_node_t *stmt = body->children[0];
         while (stmt) { codegen_stmt(ctx, stmt); stmt = stmt->next; }
     }
+    /* Garante epílogo (ret) mesmo quando o usuário não escreveu 'return'.
+       Se a última instrução já é um RETURN, este RETURN_VOID extra fica como
+       código morto inofensivo após o 'ret'. */
+    codegen_emit(ctx, TAC_RETURN_VOID, NULL, NULL, NULL);
     codegen_emit(ctx, TAC_ENDFUNC, fname, NULL, NULL);
 }
 
