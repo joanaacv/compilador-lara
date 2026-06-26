@@ -53,8 +53,15 @@ patch_list_t *patch_list_make(tac_instr_t *instr)
 patch_list_t *patch_list_merge(patch_list_t *l1, patch_list_t *l2)
 {
     /* TODO-E3-F: implemente aqui. */
-    (void)l2;
-    return l1;   /* stub: l2 é descartada — expressões compostas ficam incompletas */
+    if (l1 == NULL) return l2;
+    if (l2 == NULL) return l1;
+
+    patch_list_t *p = l1;
+    while (p->next != NULL) {
+        p = p->next;
+    }
+    p->next = l2;
+    return l1;
 }
 
 /*
@@ -75,8 +82,10 @@ patch_list_t *patch_list_merge(patch_list_t *l1, patch_list_t *l2)
 void patch_list_backpatch(patch_list_t *list, const char *label)
 {
     /* TODO-E3-E: implemente aqui. */
-    (void)list; (void)label;
-    /* stub: não faz nada — saltos ficam com rótulo "???" */
+    for (patch_list_t *p = list; p != NULL; p = p->next) {
+        free(p->instr->result);
+        p->instr->result = strdup(label);
+    }
 }
 
 /* Fornecida completa. */
