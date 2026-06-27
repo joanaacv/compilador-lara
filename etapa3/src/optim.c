@@ -193,11 +193,59 @@ void cfg_print(cfg_t *cfg, FILE *out)
  * ----------------------------------------------------------------------- */
 cfg_t *cfg_build(tac_instr_t *func_begin, tac_instr_t *func_end)
 {
-    (void)func_begin;
-    (void)func_end;
-    /* TODO-OPT-A: implemente as duas fases descritas acima.
-     * O stub retorna um CFG vazio para não travar o compilador. */
-    return cfg_new();
+    cfg_t *cfg = cfg_new();
+    basic_block_t *current = NULL;
+    tac_instr_t   *prev    = NULL;
+    int new_bb_next = 1;   // primeira instrução
+    for (tac_instr_t *t = func_begin->next; t != func_end; t = t->next) {
+        if (new_bb_next || t->op == TAC_LABEL) {
+            if (current) current->last = prev;
+
+            basic_block_t *b = bb_new(cfg->n_blocks, t); // novo bloco
+            if (cfg->n_blocks >= cfg->capacity) {
+                cfg->capacity *= 2;
+                cfg->blocks = realloc(cfg->blocks, cfg->capacity * sizeof(basic_block_t *));
+            }
+            cfg->blocks[cfg->n_blocks++] = b;
+            current = b;
+        }
+        new_bb_next = (t->op == TAC_JUMP || t->op == TAC_JUMPT ||
+                       t->op == TAC_JUMPF || t->op == TAC_RETURN ||
+                       t->op == TAC_RETURN_VOID);
+        prev = t;
+    }
+    if (current) current->last = prev;
+
+    for (int i = 0; i < cfg->n_blocks; i++) {
+        basic_block_t *b = cfg->blocks[i];
+        tac_instr_t *t = b->last;
+        if (!t) continue;
+
+        switch (t->op) {
+            case TAC_JUMP: {
+                basic_block_t *target = cfg_find_by_label(cfg, t->result);
+                if (target) bb_add_succ(b, target);
+                break;
+            }
+            case TAC_JUMPT:
+            case TAC_JUMPF: {
+                basic_block_t *target = cfg_find_by_label(cfg, t->result);
+                if (target) bb_add_succ(b, target);
+                if (i + 1 < cfg->n_blocks) {
+                    bb_add_succ(b, cfg->blocks[i + 1]);
+                }
+                break;
+            }
+            case TAC_RETURN:
+            case TAC_RETURN_VOID:
+                /* sem sucessores */
+                break;
+            default: 
+                if (i + 1 < cfg->n_blocks) bb_add_succ(b, cfg->blocks[i + 1]);
+                break;
+        }
+    }
+    return cfg;
 }
 
 /* -----------------------------------------------------------------------
@@ -229,9 +277,44 @@ cfg_t *cfg_build(tac_instr_t *func_begin, tac_instr_t *func_end)
  * ----------------------------------------------------------------------- */
 int bb_const_fold(basic_block_t *bb)
 {
-    (void)bb;
-    /* TODO-OPT-B */
-    return 0;
+    if (!bb || !bb->first) return 0;
+    int folded = 0;
+    for (tac_instr_t *t = bb->first; t; t = t->next) {
+        if (t->op == TAC_ADD || t->op == TAC_SUB || t-> op == TAC_MUL || 
+            t->op == TAC_DIV || t->op == TAC_MOD) {
+            if (is_int_literal(t->arg1) && is_int_literal(t->arg2)) {
+                long arg1 = strtol(t->arg1, NULL, 10);
+                long arg2 = strtol(t->arg2, NULL, 10);
+                long result = 0;
+
+                if ((t->op == TAC_DIV || t->op == TAC_MOD) && arg2 == 0) {
+                    if (t == bb->last) break;
+                    continue; 
+                }
+
+                switch (t->op) {
+                    case TAC_ADD: result = arg1 + arg2; break;
+                    case TAC_SUB: result = arg1 - arg2; break;
+                    case TAC_MUL: result = arg1 * arg2; break;
+                    case TAC_DIV: result = arg1 / arg2; break;
+                    case TAC_MOD: result = arg1 % arg2; break;
+                    default: break; 
+                }
+
+                char buffer[32];
+                snprintf(buffer, sizeof(buffer), "%ld", result);
+
+                free(t->arg1);
+                free(t->arg2);
+                t->arg1 = strdup(buffer);
+                t->arg2 = NULL;
+                t->op = TAC_COPY;
+                folded++;
+            }
+        }
+        if (t == bb->last) break;
+    }
+    return folded;
 }
 
 /* -----------------------------------------------------------------------
